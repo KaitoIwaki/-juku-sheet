@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自習室 宣言シート</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --blue-50:#E6F1FB;--blue-100:#B5D4F4;--blue-200:#85B7EB;--blue-600:#185FA5;--blue-800:#0C447C;
+    --teal-50:#E1F5EE;--teal-200:#5DCAA5;--teal-600:#0F6E56;--teal-800:#085041;
+    --amber-50:#FAEEDA;--amber-200:#EF9F27;--amber-600:#854F0B;
+    --green-50:#EAF3DE;--green-600:#3B6D11;
+    --gray-50:#F1EFE8;--gray-600:#5F5E5A;
+    --bg:#fff;--bg2:#f6f7f9;--bg3:#eef0f3;
+    --text:#1a1a1a;--text2:#555;--text3:#999;
+    --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+    --radius:10px;--radius-lg:14px;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
+    --text:#f0f0f0;--text2:#aaa;--text3:#666;
+    --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+  }}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh}
+
+  /* AUTH */
+  #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+  .auth-card{background:var(--bg);border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:360px;border:0.5px solid var(--border)}
+  .auth-title{font-size:20px;font-weight:600;margin-bottom:6px}
+  .auth-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
+  .auth-label{font-size:13px;color:var(--text2);margin-bottom:5px;display:block}
+  .auth-input{width:100%;padding:10px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:15px;margin-bottom:12px;outline:none}
+  .auth-input:focus{border-color:var(--blue-600)}
+  .btn-primary{width:100%;padding:12px;background:var(--blue-600);color:white;border:none;border-radius:var(--radius);font-size:15px;font-weight:500;cursor:pointer}
+  .btn-primary:hover{background:var(--blue-800)}
+  .btn-primary:disabled{opacity:0.6;cursor:not-allowed}
+  .auth-toggle{text-align:center;margin-top:12px;font-size:13px;color:var(--text2)}
+  .auth-toggle a{color:var(--blue-600);cursor:pointer}
+  .auth-error{font-size:13px;color:#c0392b;margin-bottom:10px;padding:8px 12px;background:#fdecea;border-radius:6px;display:none}
+
+  /* LAYOUT */
+  #app{display:none;max-width:960px;margin:0 auto;padding:0 0 80px}
+  .header{background:var(--blue-600);color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+  .header-title{font-size:16px;font-weight:600}
+  .header-right{display:flex;align-items:center;gap:8px}
+  .header-user{font-size:13px;opacity:0.85}
+  .header-logout{font-size:12px;background:rgba(255,255,255,0.2);border:none;color:white;padding:4px 10px;border-radius:20px;cursor:pointer}
+
+  /* BOTTOM NAV */
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:0.5px solid var(--border);display:flex;z-index:50}
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;border:none;background:none;color:var(--text2);font-size:11px;cursor:pointer;gap:3px}
+  .nav-item.active{color:var(--blue-600)}
+  .nav-icon{font-size:20px;line-height:1}
+
+  /* SECTIONS */
+  .section{display:none;padding:16px}
+  .section.active{display:block}
+  .section-title{font-size:18px;font-weight:600;margin-bottom:4px}
+  .section-sub{font-size:13px;color:var(--text2);margin-bottom:16px}
+
+  /* WEEK NAV */
+  .week-nav{display:flex;align-items:center;gap:8px;background:var(--bg2);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;border:0.5px solid var(--border)}
+  .week-nav span{flex:1;text-align:center;font-size:14px;font-weight:500}
+  .week-btn{border:0.5px solid var(--border2);background:var(--bg);color:var(--text2);padding:5px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+
+  /* GOAL BOX — 一番上に目立つように */
+  .goal-box{background:var(--amber-50);border:0.5px solid var(--amber-200);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px}
+  .goal-box-title{font-size:13px;font-weight:600;color:var(--amber-600);margin-bottom:10px}
+  .goal-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .goal-row:last-child{margin-bottom:0}
+  .goal-row label{font-size:13px;color:var(--amber-600);flex:1}
+  .goal-input{width:72px;padding:7px 10px;border:0.5px solid var(--amber-200);border-radius:var(--radius);font-size:15px;font-weight:600;background:var(--bg);color:var(--amber-600);text-align:center}
+  .goal-unit{font-size:12px;color:var(--amber-600);min-width:24px}
+
+  /* INPUT TABS */
+  .input-tabs{display:flex;gap:0;margin-bottom:14px;border-radius:var(--radius);overflow:hidden;border:0.5px solid var(--border2)}
+  .input-tab{flex:1;padding:11px 8px;font-size:14px;font-weight:500;border:none;background:var(--bg2);color:var(--text2);cursor:pointer;transition:all 0.15s}
+  .input-tab.active.declare{background:var(--blue-600);color:white}
+  .input-tab.active.actual{background:var(--teal-600);color:white}
+
+  /* DAY LIST — 宣言タブ */
+  .declare-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .declare-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+  .declare-card.has-plan{border-color:var(--blue-200);background:var(--blue-50)}
+  .declare-day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .declare-day-label{font-size:14px;font-weight:600;color:var(--text)}
+  .declare-card.has-plan .declare-day-label{color:var(--blue-800)}
+  .declare-time-row{display:flex;align-items:center;gap:8px}
+  .declare-time-label{font-size:12px;color:var(--text3);min-width:30px}
+  .time-input{flex:1;padding:8px 10px;border:0.5px solid var(--border2);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text)}
+  .time-sep{font-size:13px;color:var(--text3)}
+  .declare-planned{font-size:12px;color:var(--blue-800);font-weight:500}
+
+  /* DAY LIST — 実績タブ */
+  .actual-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .actual-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+  .actual-card.has-actual{border-color:var(--teal-200);background:var(--teal-50)}
+  .actual-day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .actual-day-label{font-size:14px;font-weight:600;color:var(--text)}
+  .actual-card.has-actual .actual-day-label{color:var(--teal-800)}
+  .actual-declare-ref{font-size:11px;color:var(--blue-600);background:var(--blue-50);padding:2px 8px;border-radius:10px}
+  .actual-input-row{display:flex;align-items:center;gap:10px}
+  .actual-input-row label{font-size:13px;color:var(--text2);flex:1}
+  .actual-input{width:80px;padding:8px 10px;border:0.5px solid var(--border2);border-radius:8px;font-size:15px;font-weight:600;background:var(--bg);color:var(--text);text-align:center}
+  .actual-unit{font-size:12px;color:var(--text3)}
+  .gap-card{background:var(--bg);border:0.5px solid var(--amber-200);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px}
+  .gap-card-title{font-size:13px;font-weight:500;color:var(--amber-600);margin-bottom:8px}
+
+  /* TOTALS */
+  .totals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+  .total-card{background:var(--bg2);border-radius:var(--radius);padding:12px 8px;text-align:center;border:0.5px solid var(--border)}
+  .total-card.blue{background:var(--blue-50);border-color:var(--blue-100)}
+  .total-card.teal{background:var(--teal-50);border-color:var(--teal-200)}
+  .total-num{font-size:22px;font-weight:600;color:var(--text)}
+  .total-card.blue .total-num{color:var(--blue-800)}
+  .total-card.teal .total-num{color:var(--teal-800)}
+  .total-label{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.3}
+
+  /* SAVE BTN */
+  .save-btn{width:100%;padding:13px;background:var(--blue-600);color:white;border:none;border-radius:var(--radius);font-size:15px;font-weight:500;cursor:pointer}
+  .save-btn:hover{background:var(--blue-800)}
+  .save-btn:disabled{opacity:0.5;cursor:not-allowed}
+  .save-btn.teal{background:var(--teal-600)}
+  .save-btn.teal:hover{background:var(--teal-800)}
+
+  /* BOARD */
+  .filter-row{display:flex;gap:6px;margin-bottom:12px}
+  .filter-btn{padding:6px 14px;font-size:13px;border:0.5px solid var(--border2);border-radius:20px;background:var(--bg);color:var(--text2);cursor:pointer}
+  .filter-btn.active{background:var(--blue-600);color:white;border-color:var(--blue-600)}
+  .student-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:8px}
+  .student-row.mine{border-color:var(--blue-200);background:var(--blue-50)}
+  .rank{font-size:16px;font-weight:600;color:var(--text2);min-width:28px;text-align:center}
+  .rank.top{color:var(--amber-600)}
+  .avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+  .name-col{flex:1;min-width:0}
+  .student-name{font-size:14px;font-weight:500}
+  .days-row{display:flex;gap:3px;margin-top:4px}
+  .day-dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+  .day-dot.v{background:var(--teal-200)}
+  .achieve-label{font-size:11px;margin-top:3px}
+  .achieved{color:var(--green-600)}
+  .not-yet{color:var(--text3)}
+  .hours-col{text-align:right;flex-shrink:0}
+  .hours-num{font-size:17px;font-weight:600}
+  .hours-unit{font-size:12px;color:var(--text2)}
+  .progress-bar{height:4px;border-radius:2px;background:var(--border);margin-top:5px;overflow:hidden;width:60px}
+  .progress-fill{height:100%;border-radius:2px;background:var(--blue-600)}
+
+  /* HISTORY */
+  .history-week{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px}
+  .history-week-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .history-week-label{font-size:13px;font-weight:500}
+  .history-hours{font-size:16px;font-weight:600;color:var(--blue-800)}
+  .history-goal{font-size:12px;color:var(--text3)}
+  .history-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+  .history-bar-fill{height:100%;border-radius:3px}
+  .history-achieve{font-size:11px;margin-top:4px}
+
+  /* ADMIN */
+  .admin-banner{background:var(--amber-50);border:0.5px solid var(--amber-600);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--amber-600)}
+  .admin-table{width:100%;border-collapse:collapse;font-size:13px}
+  .admin-table th{background:var(--bg3);padding:8px 10px;text-align:left;font-weight:500;color:var(--text2);border-bottom:0.5px solid var(--border)}
+  .admin-table td{padding:10px;border-bottom:0.5px solid var(--border)}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
+  .badge-ok{background:var(--green-50);color:var(--green-600)}
+  .badge-warn{background:var(--amber-50);color:var(--amber-600)}
+  .badge-none{background:var(--gray-50);color:var(--gray-600)}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--teal-600);color:white;padding:10px 20px;border-radius:20px;font-size:14px;opacity:0;transition:opacity 0.25s;pointer-events:none;z-index:200;white-space:nowrap}
+  .toast.show{opacity:1}
+
+  .loading{text-align:center;padding:3rem;color:var(--text2);font-size:14px}
+  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue-600);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  @media(max-width:480px){
+    .totals-grid{grid-template-columns:repeat(3,1fr)}
+    .total-label{font-size:10px}
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-title">📚 自習室 宣言シート</div>
+    <div class="auth-sub" id="auth-sub">アカウントにログイン</div>
+    <div class="auth-error" id="auth-error"></div>
+    <label class="auth-label">メールアドレス</label>
+    <input class="auth-input" type="email" id="auth-email" placeholder="example@email.com">
+    <label class="auth-label">パスワード</label>
+    <input class="auth-input" type="password" id="auth-password" placeholder="パスワード" onkeydown="if(event.key==='Enter')doAuth()">
+    <div id="auth-name-wrap" style="display:none">
+      <label class="auth-label">名前（例：山田 太郎）</label>
+      <input class="auth-input" type="text" id="auth-name" placeholder="氏名">
+    </div>
+    <button class="btn-primary" onclick="doAuth()" id="auth-btn">ログイン</button>
+    <div class="auth-toggle">
+      <span id="auth-toggle-text">アカウントをお持ちでない方は</span>
+      <a onclick="toggleAuthMode()"> <span id="auth-toggle-link">新規登録</span></a>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div class="header-title">📚 宣言シート</div>
+    <div class="header-right">
+      <div class="header-user" id="header-user"></div>
+      <button class="header-logout" onclick="logout()">ログアウト</button>
+    </div>
+  </div>
+
+  <!-- 宣言入力セクション -->
+  <div class="section active" id="sec-declare">
+    <div class="section-title">今週の宣言・実績</div>
+    <div class="section-sub">週の始めに宣言を入力、毎日実績を記録しましょう</div>
+
+    <div class="week-nav">
+      <button class="week-btn" onclick="changeWeek(-1)">◀</button>
+      <span id="week-label"></span>
+      <button class="week-btn" onclick="changeWeek(1)">▶</button>
+    </div>
+
+    <!-- 目標（一番上に常に表示） -->
+    <div class="goal-box">
+      <div class="goal-box-title">📌 今週の目標</div>
+      <div class="goal-row">
+        <label>実習室の目標時間</label>
+        <input type="number" class="goal-input" id="goal-total" placeholder="0" min="0" oninput="recalc()">
+        <span class="goal-unit">時間</span>
+      </div>
+      <div class="goal-row">
+        <label>隙間時間の目標</label>
+        <input type="number" class="goal-input" id="gap-goal" placeholder="0" min="0" step="0.5" oninput="recalc()">
+        <span class="goal-unit">時間</span>
+      </div>
+    </div>
+
+    <!-- 宣言 / 実績 タブ -->
+    <div class="input-tabs">
+      <button class="input-tab active declare" id="tab-declare" onclick="switchInputTab('declare')">📋 宣言（予定時間）</button>
+      <button class="input-tab actual" id="tab-actual" onclick="switchInputTab('actual')">✅ 実績を記録</button>
+    </div>
+
+    <!-- 宣言タブコンテンツ -->
+    <div id="content-declare">
+      <div class="declare-list" id="declare-list"></div>
+      <div class="totals-grid">
+        <div class="total-card blue">
+          <div class="total-num" id="t-planned">0</div>
+          <div class="total-label">宣言合計<br>（時間）</div>
+        </div>
+        <div class="total-card">
+          <div class="total-num" id="t-goal">0</div>
+          <div class="total-label">目標時間<br>（時間）</div>
+        </div>
+        <div class="total-card">
+          <div class="total-num" id="t-gap-goal">0</div>
+          <div class="total-label">隙間目標<br>（時間）</div>
+        </div>
+      </div>
+      <button class="save-btn" onclick="saveDeclaration()" id="save-declare-btn">宣言を保存する</button>
+    </div>
+
+    <!-- 実績タブコンテンツ -->
+    <div id="content-actual" style="display:none">
+      <div class="actual-list" id="actual-list"></div>
+      <div class="gap-card">
+        <div class="gap-card-title">🚃 隙間時間の学習（電車など）</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <label style="font-size:13px;color:var(--text2);flex:1">今週の隙間時間合計</label>
+          <input type="number" class="actual-input" id="gap-actual" placeholder="0" min="0" step="0.5" oninput="recalc()">
+          <span class="actual-unit">時間</span>
+        </div>
+      </div>
+      <div class="totals-grid">
+        <div class="total-card blue">
+          <div class="total-num" id="t-actual-sum">0</div>
+          <div class="total-label">実習室<br>実績（時間）</div>
+        </div>
+        <div class="total-card teal">
+          <div class="total-num" id="t-total-sum">0</div>
+          <div class="total-label">週間学習<br>合計（時間）</div>
+        </div>
+        <div class="total-card">
+          <div class="total-num" id="t-achieve-pct">—</div>
+          <div class="total-label">目標<br>達成率</div>
+        </div>
+      </div>
+      <button class="save-btn teal" onclick="saveDeclaration()" id="save-actual-btn">実績を保存する</button>
+    </div>
+  </div>
+
+  <!-- みんなの状況 -->
+  <div class="section" id="sec-board">
+    <div class="section-title">みんなの状況</div>
+    <div class="section-sub">今週の学習時間ランキング</div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('week',this)">今週</button>
+      <button class="filter-btn" onclick="setFilter('total',this)">累計</button>
+    </div>
+    <div id="board-list"><div class="loading"><span class="spinner"></span>読み込み中...</div></div>
+  </div>
+
+  <!-- 自分の記録 -->
+  <div class="section" id="sec-history">
+    <div class="section-title">自分の記録</div>
+    <div class="section-sub">週ごとの学習時間推移</div>
+    <div id="history-list"><div class="loading"><span class="spinner"></span>読み込み中...</div></div>
+  </div>
+
+  <!-- 管理者 -->
+  <div class="section" id="sec-admin" style="display:none">
+    <div class="section-title">管理者ビュー</div>
+    <div class="section-sub">全生徒の通塾状況</div>
+    <div class="admin-banner">🔑 管理者モード — 全生徒のデータを閲覧できます</div>
+    <div class="week-nav" style="margin-bottom:12px">
+      <button class="week-btn" onclick="changeAdminWeek(-1)">◀</button>
+      <span id="admin-week-label"></span>
+      <button class="week-btn" onclick="changeAdminWeek(1)">▶</button>
+    </div>
+    <div id="admin-table-wrap"><div class="loading"><span class="spinner"></span>読み込み中...</div></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('declare',this)">
+      <span class="nav-icon">✏️</span>宣言・実績
+    </button>
+    <button class="nav-item" onclick="switchTab('board',this)">
+      <span class="nav-icon">🏆</span>みんなの状況
+    </button>
+    <button class="nav-item" onclick="switchTab('history',this)">
+      <span class="nav-icon">📊</span>自分の記録
+    </button>
+    <button class="nav-item" id="admin-nav" style="display:none" onclick="switchTab('admin',this)">
+      <span class="nav-icon">⚙️</span>管理
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SUPABASE_URL = 'https://rnvqebbafgumkyauvgtn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJudnFlYmJhZmd1bWt5YXV2Z3RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDEyODQsImV4cCI6MjA5MDExNzI4NH0.by-GVlbEIHOK0SPee1kJ27G-qRlViLHPq3YyK_QmDW4';
+const ADMIN_EMAILS = ['iiiwakikaitooo@gmail.com'];
+// ============================================================
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const DAYS = ['月','火','水','木','金','土','日'];
+const DEFAULT_START = ['18:00','18:00','18:00','18:00','18:00','10:00','10:00'];
+const DEFAULT_END   = ['22:00','22:00','22:00','22:00','22:00','22:00','22:00'];
+const AVATAR_COLORS = [
+  {bg:'#E6F1FB',tx:'#0C447C'},{bg:'#E1F5EE',tx:'#085041'},
+  {bg:'#FAECE7',tx:'#712B13'},{bg:'#FBEAF0',tx:'#72243E'},
+  {bg:'#EEEDFE',tx:'#3C3489'},{bg:'#FAEEDA',tx:'#633806'},
+  {bg:'#EAF3DE',tx:'#27500A'}
+];
+
+let currentUser=null, userProfile=null, isAdmin=false;
+let weekOffset=0, adminWeekOffset=0;
+let currentInputTab='declare';
+let authMode='login';
+
+// ===== AUTH =====
+function toggleAuthMode(){
+  authMode = authMode==='login'?'register':'login';
+  const isReg = authMode==='register';
+  document.getElementById('auth-sub').textContent = isReg?'新規アカウント登録':'アカウントにログイン';
+  document.getElementById('auth-btn').textContent = isReg?'登録する':'ログイン';
+  document.getElementById('auth-toggle-link').textContent = isReg?'ログインはこちら':'新規登録';
+  document.getElementById('auth-toggle-text').textContent = isReg?'すでにアカウントをお持ちの方は':'アカウントをお持ちでない方は';
+  document.getElementById('auth-name-wrap').style.display = isReg?'block':'none';
+  document.getElementById('auth-error').style.display='none';
+}
+
+async function doAuth(){
+  const email=document.getElementById('auth-email').value.trim();
+  const password=document.getElementById('auth-password').value;
+  const btn=document.getElementById('auth-btn');
+  const errEl=document.getElementById('auth-error');
+  if(!email||!password){showErr('メールアドレスとパスワードを入力してください');return}
+  btn.disabled=true; btn.textContent='処理中...'; errEl.style.display='none';
+  try{
+    if(authMode==='register'){
+      const name=document.getElementById('auth-name').value.trim();
+      if(!name){showErr('名前を入力してください');btn.disabled=false;btn.textContent='登録する';return}
+      const {error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
+      if(error)throw error;
+      showErr('登録完了！ログインしてください。','info');
+    } else {
+      const {error}=await sb.auth.signInWithPassword({email,password});
+      if(error)throw error;
+    }
+  } catch(e){
+    showErr(e.message==='Invalid login credentials'?'メールアドレスまたはパスワードが違います':e.message);
+  }
+  btn.disabled=false; btn.textContent=authMode==='login'?'ログイン':'登録する';
+}
+
+function showErr(msg,type='error'){
+  const el=document.getElementById('auth-error');
+  el.textContent=msg; el.style.display='block';
+  el.style.background=type==='info'?'#e8f4fd':'#fdecea';
+  el.style.color=type==='info'?'#1a5f8a':'#c0392b';
+}
+
+async function logout(){ await sb.auth.signOut(); location.reload(); }
+
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(session){
+    currentUser=session.user;
+    isAdmin=ADMIN_EMAILS.includes(currentUser.email);
+    await ensureProfile();
+    initApp();
+  }
+});
+
+async function ensureProfile(){
+  let {data}=await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  if(!data){
+    const name=currentUser.user_metadata?.full_name||currentUser.email.split('@')[0];
+    await sb.from('profiles').insert({id:currentUser.id,full_name:name,email:currentUser.email});
+    data={id:currentUser.id,full_name:name,email:currentUser.email};
+  }
+  userProfile=data;
+}
+
+function initApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('header-user').textContent=userProfile?.full_name||'';
+  if(isAdmin) document.getElementById('admin-nav').style.display='flex';
+  updateWeekLabel();
+  renderDeclareList();
+  renderActualList();
+  loadDeclaration();
+}
+
+// ===== WEEK =====
+function getWeekId(offset=weekOffset){
+  const base=new Date(2026,2,23);
+  base.setDate(base.getDate()+offset*7);
+  return base.toISOString().slice(0,10).replace(/-/g,'');
+}
+function getWeekLabel(offset=weekOffset){
+  const base=new Date(2026,2,23);
+  base.setDate(base.getDate()+offset*7);
+  const m=base.getMonth()+1, w=Math.ceil(base.getDate()/7);
+  const wl=['','第1週','第2週','第3週','第4週','第5週'];
+  return `${base.getFullYear()}年${m}月${wl[Math.min(w,5)]}`;
+}
+function updateWeekLabel(){ document.getElementById('week-label').textContent=getWeekLabel(); }
+function changeWeek(d){ weekOffset+=d; updateWeekLabel(); renderDeclareList(); renderActualList(); loadDeclaration(); }
+function changeAdminWeek(d){ adminWeekOffset+=d; document.getElementById('admin-week-label').textContent=getWeekLabel(adminWeekOffset); loadAdminData(); }
+
+// ===== INPUT TAB SWITCH =====
+function switchInputTab(tab){
+  currentInputTab=tab;
+  document.getElementById('tab-declare').className='input-tab'+(tab==='declare'?' active declare':'');
+  document.getElementById('tab-actual').className='input-tab'+(tab==='actual'?' active actual':'');
+  document.getElementById('content-declare').style.display=tab==='declare'?'block':'none';
+  document.getElementById('content-actual').style.display=tab==='actual'?'block':'none';
+  recalc();
+}
+
+// ===== DECLARE LIST =====
+function renderDeclareList(){
+  const list=document.getElementById('declare-list');
+  list.innerHTML='';
+  DAYS.forEach((day,i)=>{
+    const card=document.createElement('div');
+    card.className='declare-card';
+    card.id=`dc-${i}`;
+    card.innerHTML=`
+      <div class="declare-day-header">
+        <span class="declare-day-label">${day}曜日</span>
+        <span class="declare-planned" id="dc-planned-${i}"></span>
+      </div>
+      <div class="declare-time-row">
+        <span class="declare-time-label">開始</span>
+        <input class="time-input" type="time" id="s${i}" value="${DEFAULT_START[i]}" oninput="onDeclareInput(${i})">
+        <span class="time-sep">〜</span>
+        <input class="time-input" type="time" id="e${i}" value="${DEFAULT_END[i]}" oninput="onDeclareInput(${i})">
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function onDeclareInput(i){
+  const s=document.getElementById(`s${i}`).value;
+  const e=document.getElementById(`e${i}`).value;
+  const card=document.getElementById(`dc-${i}`);
+  const pl=document.getElementById(`dc-planned-${i}`);
+  if(s&&e){
+    const h=Math.max(0,t2h(e)-t2h(s));
+    card.className='declare-card has-plan';
+    pl.textContent=h>0?`${h.toFixed(1)}h`:'';
+  } else {
+    card.className='declare-card';
+    pl.textContent='';
+  }
+  recalc();
+}
+
+// ===== ACTUAL LIST =====
+function renderActualList(){
+  const list=document.getElementById('actual-list');
+  list.innerHTML='';
+  DAYS.forEach((day,i)=>{
+    const card=document.createElement('div');
+    card.className='actual-card';
+    card.id=`ac-${i}`;
+    card.innerHTML=`
+      <div class="actual-day-header">
+        <span class="actual-day-label">${day}曜日</span>
+        <span class="actual-declare-ref" id="ac-ref-${i}">宣言: —</span>
+      </div>
+      <div class="actual-input-row">
+        <label>実際に勉強した時間</label>
+        <input type="number" class="actual-input" id="a${i}" placeholder="0" min="0" step="0.5" oninput="onActualInput(${i})">
+        <span class="actual-unit">時間</span>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function onActualInput(i){
+  const v=parseFloat(document.getElementById(`a${i}`).value)||0;
+  document.getElementById(`ac-${i}`).className='actual-card'+(v>0?' has-actual':'');
+  recalc();
+}
+
+function updateActualRefs(){
+  DAYS.forEach((_,i)=>{
+    const s=document.getElementById(`s${i}`)?.value;
+    const e=document.getElementById(`e${i}`)?.value;
+    const ref=document.getElementById(`ac-ref-${i}`);
+    if(ref){
+      if(s&&e){
+        const h=Math.max(0,t2h(e)-t2h(s));
+        ref.textContent=`宣言: ${h.toFixed(1)}h`;
+      } else {
+        ref.textContent='宣言: なし';
+      }
+    }
+  });
+}
+
+// ===== CALC =====
+function t2h(t){ if(!t)return 0; const[h,m]=t.split(':').map(Number); return h+m/60; }
+
+function recalc(){
+  let planned=0, actual=0;
+  DAYS.forEach((_,i)=>{
+    const s=document.getElementById(`s${i}`)?.value;
+    const e=document.getElementById(`e${i}`)?.value;
+    if(s&&e) planned+=Math.max(0,t2h(e)-t2h(s));
+    actual+=parseFloat(document.getElementById(`a${i}`)?.value)||0;
+  });
+  const gap=parseFloat(document.getElementById('gap-actual')?.value)||0;
+  const goalTotal=parseFloat(document.getElementById('goal-total')?.value)||0;
+  const gapGoal=parseFloat(document.getElementById('gap-goal')?.value)||0;
+  const totalStudy=actual+gap;
+  const achievePct=goalTotal>0?Math.round(totalStudy/(goalTotal+gapGoal)*100):null;
+
+  const el=(id,val)=>{ const e=document.getElementById(id); if(e)e.textContent=val; };
+  el('t-planned', planned.toFixed(1));
+  el('t-goal', goalTotal||'—');
+  el('t-gap-goal', gapGoal||'—');
+  el('t-actual-sum', actual.toFixed(1));
+  el('t-total-sum', totalStudy.toFixed(1));
+  el('t-achieve-pct', achievePct!==null?achievePct+'%':'—');
+  updateActualRefs();
+}
+
+// ===== LOAD/SAVE =====
+async function loadDeclaration(){
+  if(!currentUser)return;
+  const {data}=await sb.from('declarations').select('*').eq('user_id',currentUser.id).eq('week_id',getWeekId()).single();
+  if(!data)return;
+  const days=data.days_data||[];
+  days.forEach((d,i)=>{
+    const se=document.getElementById(`s${i}`); if(se)se.value=d.start||DEFAULT_START[i];
+    const ee=document.getElementById(`e${i}`); if(ee)ee.value=d.end||DEFAULT_END[i];
+    const ae=document.getElementById(`a${i}`); if(ae)ae.value=d.actual||'';
+    if(d.start&&d.end) document.getElementById(`dc-${i}`)?.classList.add('has-plan');
+    if(d.actual>0) document.getElementById(`ac-${i}`)?.classList.add('has-actual');
+    const pl=document.getElementById(`dc-planned-${i}`);
+    if(pl&&d.start&&d.end){ const h=Math.max(0,t2h(d.end)-t2h(d.start)); pl.textContent=h>0?`${h.toFixed(1)}h`:''; }
+  });
+  const gt=document.getElementById('goal-total'); if(gt)gt.value=data.goal_total||'';
+  const gg=document.getElementById('gap-goal'); if(gg)gg.value=data.gap_goal||'';
+  const ga=document.getElementById('gap-actual'); if(ga)ga.value=data.gap_time||'';
+  recalc();
+}
+
+async function saveDeclaration(){
+  if(!currentUser)return;
+  const btnId=currentInputTab==='declare'?'save-declare-btn':'save-actual-btn';
+  const btn=document.getElementById(btnId);
+  btn.disabled=true; btn.textContent='保存中...';
+  const days=DAYS.map((_,i)=>({
+    start:document.getElementById(`s${i}`)?.value||'',
+    end:document.getElementById(`e${i}`)?.value||'',
+    actual:parseFloat(document.getElementById(`a${i}`)?.value)||0
+  }));
+  let planned=0, actual=0;
+  days.forEach(d=>{
+    if(d.start&&d.end) planned+=Math.max(0,t2h(d.end)-t2h(d.start));
+    actual+=d.actual;
+  });
+  const goal_total=parseFloat(document.getElementById('goal-total')?.value)||0;
+  const gap_goal=parseFloat(document.getElementById('gap-goal')?.value)||0;
+  const gap_time=parseFloat(document.getElementById('gap-actual')?.value)||0;
+  const total_study=parseFloat((actual+gap_time).toFixed(1));
+  const payload={
+    user_id:currentUser.id, week_id:getWeekId(),
+    days_data:days, goal_total, gap_goal, gap_time,
+    planned_hours:parseFloat(planned.toFixed(1)),
+    actual_hours:parseFloat(actual.toFixed(1)),
+    total_study_hours:total_study,
+    visit_days:days.filter(d=>d.actual>0).length,
+    updated_at:new Date().toISOString()
+  };
+  const {error}=await sb.from('declarations').upsert(payload,{onConflict:'user_id,week_id'});
+  btn.disabled=false;
+  btn.textContent=currentInputTab==='declare'?'宣言を保存する':'実績を保存する';
+  if(error){toast('エラーが発生しました');return;}
+  toast('保存しました ✓');
+}
+
+// ===== BOARD =====
+let boardFilter='week';
+function setFilter(f,el){
+  boardFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  loadBoard();
+}
+
+async function loadBoard(){
+  const list=document.getElementById('board-list');
+  list.innerHTML='<div class="loading"><span class="spinner"></span>読み込み中...</div>';
+  let query=sb.from('declarations').select('*, profiles(full_name)');
+  if(boardFilter==='week') query=query.eq('week_id',getWeekId());
+  const {data,error}=await query;
+  if(error||!data){list.innerHTML='<div class="loading">データを読み込めませんでした</div>';return;}
+  let agg={};
+  data.forEach(r=>{
+    const name=r.profiles?.full_name||'不明';
+    const uid=r.user_id;
+    if(!agg[uid]) agg[uid]={name,total:0,goal:r.goal_total||0,visits:0,uid};
+    agg[uid].total+=r.total_study_hours||0;
+    agg[uid].visits+=r.visit_days||0;
+    if(boardFilter==='week') agg[uid].goal=r.goal_total||0;
+  });
+  const sorted=Object.values(agg).sort((a,b)=>b.total-a.total);
+  const maxH=sorted[0]?.total||1;
+  list.innerHTML='';
+  sorted.forEach((s,i)=>{
+    const ci=Math.abs(s.uid.charCodeAt(0)+s.uid.charCodeAt(4))%AVATAR_COLORS.length;
+    const c=AVATAR_COLORS[ci];
+    const initials=s.name.replace(/\s/g,'').slice(-2);
+    const achieve=s.goal>0?Math.min(100,Math.round(s.total/s.goal*100)):0;
+    const rankLabel=i<3?['🥇','🥈','🥉'][i]:(i+1);
+    const dots=Array.from({length:7},(_,d)=>`<div class="day-dot${d<Math.min(s.visits,7)?' v':''}"></div>`).join('');
+    const isMe=s.uid===currentUser?.id;
+    const row=document.createElement('div');
+    row.className='student-row'+(isMe?' mine':'');
+    row.innerHTML=`
+      <div class="rank ${i<3?'top':''}">${rankLabel}</div>
+      <div class="avatar" style="background:${c.bg};color:${c.tx}">${initials}</div>
+      <div class="name-col">
+        <div class="student-name">${s.name}${isMe?'<span style="font-size:11px;background:#E6F1FB;color:#0C447C;padding:1px 7px;border-radius:10px;margin-left:6px;font-weight:400;">自分</span>':''}</div>
+        <div class="days-row">${dots}</div>
+        <div class="achieve-label ${achieve>=100?'achieved':'not-yet'}">${achieve>=100?'✓ 目標達成':s.goal>0?`目標比 ${achieve}%`:''}</div>
+      </div>
+      <div class="hours-col">
+        <div><span class="hours-num">${s.total.toFixed(1)}</span><span class="hours-unit"> h</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(s.total/maxH*100)}%"></div></div>
+      </div>`;
+    list.appendChild(row);
+  });
+  if(sorted.length===0) list.innerHTML='<div class="loading">まだデータがありません</div>';
+}
+
+// ===== HISTORY =====
+async function loadHistory(){
+  const list=document.getElementById('history-list');
+  list.innerHTML='<div class="loading"><span class="spinner"></span>読み込み中...</div>';
+  const {data}=await sb.from('declarations').select('week_id,total_study_hours,goal_total,planned_hours,actual_hours,gap_time,visit_days').eq('user_id',currentUser.id).order('week_id',{ascending:false}).limit(12);
+  if(!data||data.length===0){list.innerHTML='<div class="loading">まだ記録がありません</div>';return;}
+  list.innerHTML='';
+  data.forEach(r=>{
+    const wid=r.week_id;
+    const y=wid.slice(0,4),m=parseInt(wid.slice(4,6)),d=parseInt(wid.slice(6,8));
+    const w=Math.ceil(d/7);
+    const wl=['','第1週','第2週','第3週','第4週','第5週'];
+    const label=`${y}年${m}月${wl[Math.min(w,5)]}`;
+    const total=r.total_study_hours||0;
+    const goal=r.goal_total||0;
+    const pct=goal>0?Math.min(100,Math.round(total/goal*100)):0;
+    const color=pct>=100?'#5DCAA5':'#185FA5';
+    const el=document.createElement('div');
+    el.className='history-week';
+    el.innerHTML=`
+      <div class="history-week-header">
+        <span class="history-week-label">${label}</span>
+        <span><span class="history-hours">${total.toFixed(1)} h</span> <span class="history-goal">/ 目標 ${goal} h</span></span>
+      </div>
+      <div class="history-bar"><div class="history-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="history-achieve ${pct>=100?'achieved':'not-yet'}">${pct>=100?'✓ 目標達成':`${pct}% 達成`} — 通塾 ${r.visit_days||0}日 / 実習室 ${(r.actual_hours||0).toFixed(1)}h + 隙間 ${(r.gap_time||0).toFixed(1)}h</div>`;
+    list.appendChild(el);
+  });
+}
+
+// ===== ADMIN =====
+async function loadAdminData(){
+  if(!isAdmin)return;
+  document.getElementById('admin-week-label').textContent=getWeekLabel(adminWeekOffset);
+  const wrap=document.getElementById('admin-table-wrap');
+  wrap.innerHTML='<div class="loading"><span class="spinner"></span>読み込み中...</div>';
+  const {data}=await sb.from('declarations').select('*, profiles(full_name,email)').eq('week_id',getWeekId(adminWeekOffset)).order('total_study_hours',{ascending:false});
+  if(!data||data.length===0){wrap.innerHTML='<div class="loading">データがありません</div>';return;}
+  let html=`<div style="overflow-x:auto"><table class="admin-table">
+    <thead><tr><th>氏名</th><th>目標</th><th>実習室</th><th>隙間</th><th>合計</th><th>通塾日</th><th>達成率</th></tr></thead><tbody>`;
+  data.forEach(r=>{
+    const name=r.profiles?.full_name||r.profiles?.email||'不明';
+    const goal=r.goal_total||0;
+    const total=r.total_study_hours||0;
+    const pct=goal>0?Math.round(total/goal*100):0;
+    const badgeClass=pct>=100?'badge-ok':pct>=50?'badge-warn':'badge-none';
+    const badgeLabel=pct>=100?'達成':pct>=50?'途中':'未達';
+    html+=`<tr><td>${name}</td><td>${goal}h</td><td>${(r.actual_hours||0).toFixed(1)}h</td><td>${(r.gap_time||0).toFixed(1)}h</td><td><strong>${total.toFixed(1)}h</strong></td><td>${r.visit_days||0}日</td><td><span class="badge ${badgeClass}">${goal>0?pct+'% '+badgeLabel:'未設定'}</span></td></tr>`;
+  });
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
+}
+
+// ===== NAV =====
+function switchTab(id,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  if(id==='board')loadBoard();
+  if(id==='history')loadHistory();
+  if(id==='admin')loadAdminData();
+}
+
+// ===== TOAST =====
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+</script>
+</body>
+</html>
